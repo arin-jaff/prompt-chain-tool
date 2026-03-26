@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8efe2;
+  --surface: #fffaf4;
+  --foreground: #231f20;
+  --muted: #6f665f;
+  --accent: #d74f2a;
+  --accent-2: #f1a208;
+  --danger: #b42318;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html[data-theme="dark"] {
+  --background: #101315;
+  --surface: #191e22;
+  --foreground: #f7f6f4;
+  --muted: #b2b0ab;
+  --accent: #ff6b35;
+  --accent-2: #ffc145;
+  --danger: #ff6f61;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
+  border-radius: 1rem;
+}
+
+.soft-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--foreground) 18%, transparent);
+  background: color-mix(in oklab, var(--surface) 88%, var(--background));
+  padding: 0.6rem 0.75rem;
+}
+
+.soft-input:focus {
+  outline: 2px solid color-mix(in oklab, var(--accent) 75%, white);
+  outline-offset: 1px;
+}
+
+.primary-btn {
+  border-radius: 0.75rem;
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  color: white;
+  padding: 0.6rem 0.9rem;
+  font-weight: 650;
+}
+
+.secondary-btn {
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--foreground) 18%, transparent);
+  padding: 0.6rem 0.9rem;
+}
+
+.danger-btn {
+  border-radius: 0.75rem;
+  background: var(--danger);
+  color: white;
+  padding: 0.55rem 0.85rem;
+}
