@@ -236,6 +236,42 @@ export function PromptChainAdmin() {
     setStatusMessage("Flavor updated.");
   }
 
+  async function duplicateFlavor() {
+    if (!selectedFlavorId) {
+      return;
+    }
+
+    const source = flavors.find((f) => f.id === selectedFlavorId);
+    const proposed = window.prompt(
+      "Name for the duplicated flavor (leave blank for an auto-generated name):",
+      source ? `${source.name} (Copy)` : "",
+    );
+    if (proposed === null) {
+      return;
+    }
+
+    setIsBusy(true);
+    setStatusMessage("Duplicating flavor...");
+
+    const response = await fetch(`/api/flavors/${selectedFlavorId}/duplicate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: proposed.trim() }),
+    });
+
+    setIsBusy(false);
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({ error: "Failed to duplicate flavor" }));
+      setStatusMessage(data.error ?? "Failed to duplicate flavor");
+      return;
+    }
+
+    const data = (await response.json()) as { flavor: HumorFlavor };
+    await refreshFlavors(data.flavor.id);
+    setStatusMessage(`Flavor duplicated as "${data.flavor.name}".`);
+  }
+
   async function deleteFlavor() {
     if (!selectedFlavorId) {
       return;
@@ -556,6 +592,9 @@ export function PromptChainAdmin() {
               <div className="mt-3 flex gap-2">
                 <button className="primary-btn" disabled={isBusy} onClick={updateFlavor} type="button">
                   Update Flavor
+                </button>
+                <button className="secondary-btn" disabled={isBusy} onClick={duplicateFlavor} type="button">
+                  Duplicate Flavor
                 </button>
                 <button className="danger-btn" disabled={isBusy} onClick={deleteFlavor} type="button">
                   Delete Flavor
