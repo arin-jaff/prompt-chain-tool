@@ -31,7 +31,7 @@ export async function POST(request: Request, { params }: Params) {
     const { error: updateError } = await supabase
       .from(TABLES.flavorSteps)
       .update({
-        step_order: index + 1,
+        order_by: index + 1,
         modified_by_user_id: user.userId,
       })
       .eq("id", stepId)

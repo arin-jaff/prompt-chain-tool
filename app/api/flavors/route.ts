@@ -12,8 +12,8 @@ export async function GET() {
   const supabase = await createSupabaseServerClient();
   const { data, error: listError } = await supabase
     .from(TABLES.flavors)
-    .select("id, name, description, created_datetime_utc, modified_datetime_utc")
-    .order("name", { ascending: true });
+    .select("id, name:slug, description, created_datetime_utc, modified_datetime_utc")
+    .order("slug", { ascending: true });
 
   if (listError) {
     return NextResponse.json({ error: listError.message }, { status: 400 });
@@ -43,12 +43,12 @@ export async function POST(request: Request) {
   const { data, error: insertError } = await supabase
     .from(TABLES.flavors)
     .insert({
-      name,
+      slug: name,
       description,
       created_by_user_id: user.userId,
       modified_by_user_id: user.userId,
     })
-    .select("id, name, description, created_datetime_utc, modified_datetime_utc")
+    .select("id, name:slug, description, created_datetime_utc, modified_datetime_utc")
     .single();
 
   if (insertError) {

@@ -26,12 +26,12 @@ export async function PATCH(request: Request, { params }: Params) {
   const { data, error: updateError } = await supabase
     .from(TABLES.flavorSteps)
     .update({
-      instruction,
+      llm_user_prompt: instruction,
       modified_by_user_id: user.userId,
     })
     .eq("id", stepId)
     .eq("humor_flavor_id", flavorId)
-    .select("id, humor_flavor_id, step_order, instruction, created_datetime_utc, modified_datetime_utc")
+    .select("id, humor_flavor_id, step_order:order_by, instruction:llm_user_prompt, created_datetime_utc, modified_datetime_utc")
     .single();
 
   if (updateError) {
@@ -67,7 +67,7 @@ export async function DELETE(_: Request, { params }: Params) {
     .from(TABLES.flavorSteps)
     .select("id")
     .eq("humor_flavor_id", flavorId)
-    .order("step_order", { ascending: true });
+    .order("order_by", { ascending: true });
 
   if (readError) {
     return NextResponse.json({ error: readError.message }, { status: 400 });
@@ -79,7 +79,7 @@ export async function DELETE(_: Request, { params }: Params) {
     await supabase
       .from(TABLES.flavorSteps)
       .update({
-        step_order: index + 1,
+        order_by: index + 1,
         modified_by_user_id: user.userId,
       })
       .eq("id", step?.id);

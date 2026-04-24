@@ -16,7 +16,7 @@ export async function GET(_: Request, { params }: Params) {
 
   const { data: flavor, error: flavorError } = await supabase
     .from(TABLES.flavors)
-    .select("id, name, description, created_datetime_utc, modified_datetime_utc")
+    .select("id, name:slug, description, created_datetime_utc, modified_datetime_utc")
     .eq("id", flavorId)
     .single();
 
@@ -26,9 +26,9 @@ export async function GET(_: Request, { params }: Params) {
 
   const { data: steps, error: stepError } = await supabase
     .from(TABLES.flavorSteps)
-    .select("id, humor_flavor_id, step_order, instruction, created_datetime_utc, modified_datetime_utc")
+    .select("id, humor_flavor_id, step_order:order_by, instruction:llm_user_prompt, created_datetime_utc, modified_datetime_utc")
     .eq("humor_flavor_id", flavorId)
-    .order("step_order", { ascending: true });
+    .order("order_by", { ascending: true });
 
   if (stepError) {
     return NextResponse.json({ error: stepError.message }, { status: 400 });
@@ -58,7 +58,7 @@ export async function PATCH(request: Request, { params }: Params) {
     if (!trimmed) {
       return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
     }
-    payload.name = trimmed;
+    payload.slug = trimmed;
   }
 
   if (typeof body?.description === "string") {
@@ -70,7 +70,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .from(TABLES.flavors)
     .update(payload)
     .eq("id", flavorId)
-    .select("id, name, description, created_datetime_utc, modified_datetime_utc")
+    .select("id, name:slug, description, created_datetime_utc, modified_datetime_utc")
     .single();
 
   if (updateError) {

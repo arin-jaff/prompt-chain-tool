@@ -34,7 +34,7 @@ export async function POST(request: Request, { params }: Params) {
 
   const { data: sourceFlavor, error: sourceError } = await supabase
     .from(TABLES.flavors)
-    .select("id, name, description")
+    .select("id, name:slug, description")
     .eq("id", flavorId)
     .single();
 
@@ -44,7 +44,7 @@ export async function POST(request: Request, { params }: Params) {
 
   const { data: allFlavors, error: listError } = await supabase
     .from(TABLES.flavors)
-    .select("name");
+    .select("name:slug");
 
   if (listError) {
     return NextResponse.json({ error: listError.message }, { status: 400 });
@@ -68,12 +68,12 @@ export async function POST(request: Request, { params }: Params) {
   const { data: newFlavor, error: insertFlavorError } = await supabase
     .from(TABLES.flavors)
     .insert({
-      name: newName,
+      slug: newName,
       description: sourceFlavor.description,
       created_by_user_id: user.userId,
       modified_by_user_id: user.userId,
     })
-    .select("id, name, description, created_datetime_utc, modified_datetime_utc")
+    .select("id, name:slug, description, created_datetime_utc, modified_datetime_utc")
     .single();
 
   if (insertFlavorError || !newFlavor) {
@@ -85,9 +85,9 @@ export async function POST(request: Request, { params }: Params) {
 
   const { data: sourceSteps, error: stepsError } = await supabase
     .from(TABLES.flavorSteps)
-    .select("step_order, instruction")
+    .select("step_order:order_by, instruction:llm_user_prompt, humor_flavor_step_type_id, llm_input_type_id, llm_output_type_id, llm_model_id, llm_system_prompt")
     .eq("humor_flavor_id", flavorId)
-    .order("step_order", { ascending: true });
+    .order("order_by", { ascending: true });
 
   if (stepsError) {
     await supabase.from(TABLES.flavors).delete().eq("id", newFlavor.id);
@@ -97,8 +97,13 @@ export async function POST(request: Request, { params }: Params) {
   if (sourceSteps && sourceSteps.length > 0) {
     const stepRows = sourceSteps.map((step) => ({
       humor_flavor_id: newFlavor.id,
-      step_order: step.step_order,
-      instruction: step.instruction,
+      order_by: step.step_order,
+      llm_user_prompt: step.instruction,
+      llm_system_prompt: step.llm_system_prompt ?? null,
+      humor_flavor_step_type_id: step.humor_flavor_step_type_id ?? 3,
+      llm_input_type_id: step.llm_input_type_id ?? 2,
+      llm_output_type_id: step.llm_output_type_id ?? 1,
+      llm_model_id: step.llm_model_id ?? 1,
       created_by_user_id: user.userId,
       modified_by_user_id: user.userId,
     }));

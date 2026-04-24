@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   const { data: flavor, error: flavorError } = await supabase
     .from(TABLES.flavors)
-    .select("id, name")
+    .select("id, name:slug")
     .eq("id", flavorId)
     .single();
 
@@ -40,9 +40,9 @@ export async function POST(request: Request) {
 
   const { data: steps, error: stepError } = await supabase
     .from(TABLES.flavorSteps)
-    .select("id, step_order, instruction")
+    .select("id, step_order:order_by, instruction:llm_user_prompt")
     .eq("humor_flavor_id", flavorId)
-    .order("step_order", { ascending: true });
+    .order("order_by", { ascending: true });
 
   if (stepError) {
     return NextResponse.json({ error: stepError.message }, { status: 400 });

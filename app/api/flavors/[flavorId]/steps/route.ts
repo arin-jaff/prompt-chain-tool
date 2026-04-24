@@ -25,27 +25,32 @@ export async function POST(request: Request, { params }: Params) {
   const supabase = await createSupabaseServerClient();
   const { data: existingSteps, error: existingError } = await supabase
     .from(TABLES.flavorSteps)
-    .select("step_order")
+    .select("order_by")
     .eq("humor_flavor_id", flavorId)
-    .order("step_order", { ascending: false })
+    .order("order_by", { ascending: false })
     .limit(1);
 
   if (existingError) {
     return NextResponse.json({ error: existingError.message }, { status: 400 });
   }
 
-  const nextOrder = (existingSteps?.[0]?.step_order ?? 0) + 1;
+  const nextOrder = (existingSteps?.[0]?.order_by ?? 0) + 1;
 
   const { data, error: insertError } = await supabase
     .from(TABLES.flavorSteps)
     .insert({
       humor_flavor_id: flavorId,
-      step_order: nextOrder,
-      instruction,
+      order_by: nextOrder,
+      llm_user_prompt: instruction,
+      llm_system_prompt: null,
+      humor_flavor_step_type_id: 3,
+      llm_input_type_id: 2,
+      llm_output_type_id: 1,
+      llm_model_id: 1,
       created_by_user_id: user.userId,
       modified_by_user_id: user.userId,
     })
-    .select("id, humor_flavor_id, step_order, instruction, created_datetime_utc, modified_datetime_utc")
+    .select("id, humor_flavor_id, step_order:order_by, instruction:llm_user_prompt, created_datetime_utc, modified_datetime_utc")
     .single();
 
   if (insertError) {
