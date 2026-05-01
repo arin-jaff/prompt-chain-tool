@@ -512,13 +512,40 @@ export function PromptChainAdmin() {
     );
   }
 
+  const statusKind = ((): "success" | "error" | "info" => {
+    const m = statusMessage.toLowerCase();
+    if (!m) return "info";
+    if (/(fail|unable|error|missing|not found|cannot|denied)/.test(m)) return "error";
+    if (/(complete|created|deleted|updated|configured|reordered|saved|duplicated|loaded)/.test(m))
+      return "success";
+    return "info";
+  })();
+  const statusBg =
+    statusKind === "error"
+      ? "rgba(255,107,97,0.12)"
+      : statusKind === "success"
+        ? "rgba(255,193,69,0.12)"
+        : "rgba(255,255,255,0.04)";
+  const statusBorder =
+    statusKind === "error"
+      ? "var(--danger)"
+      : statusKind === "success"
+        ? "var(--accent-2)"
+        : "color-mix(in oklab, var(--foreground) 18%, transparent)";
+
+  const selectedFlavor = flavors.find((f) => f.id === selectedFlavorId);
+  const totalImages = images.length;
+  const selectedImageCount = selectedImageIds.length;
+
   return (
     <div className="mx-auto w-full max-w-7xl p-4 md:p-8">
       <header className="mb-4 panel p-4 md:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-semibold md:text-3xl">Humor Flavor Prompt Chains</h1>
-            <p className="text-muted">Create, edit, reorder, and test flavor steps against an image test set.</p>
+            <p className="text-muted">
+              Build a multi-step prompt chain, then test it against real images to generate captions.
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="text-sm font-medium">Theme</label>
@@ -538,61 +565,83 @@ export function PromptChainAdmin() {
         </div>
       </header>
 
-      <p className="mb-4 min-h-6 text-sm text-muted">{statusMessage}</p>
+      {statusMessage ? (
+        <div
+          className="mb-4 rounded-xl border px-4 py-2 text-sm"
+          style={{ background: statusBg, borderColor: statusBorder }}
+          role="status"
+        >
+          {statusMessage}
+        </div>
+      ) : (
+        <div className="mb-4 min-h-6" />
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <section className="panel p-4 md:p-5">
-          <h2 className="text-xl font-semibold">Humor Flavors</h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-xl font-semibold">Humor Flavors</h2>
+            <span className="text-xs text-muted">{flavors.length} total</span>
+          </div>
+          <p className="mt-1 text-xs text-muted">Click a flavor below to edit it.</p>
+
           <form className="mt-4 space-y-2" onSubmit={createFlavor}>
             <input
               className="soft-input"
-              placeholder="Flavor name"
+              placeholder="Flavor name (e.g. deep-fried-memes)"
               value={nameInput}
               onChange={(event) => setNameInput(event.target.value)}
             />
             <textarea
               className="soft-input min-h-20"
-              placeholder="Flavor description"
+              placeholder="Short description of this flavor's vibe"
               value={descriptionInput}
               onChange={(event) => setDescriptionInput(event.target.value)}
             />
-            <button className="primary-btn" disabled={isBusy} type="submit">
-              Create Flavor
+            <button className="primary-btn w-full" disabled={isBusy} type="submit">
+              + Create Flavor
             </button>
           </form>
 
           <div className="mt-4 max-h-96 space-y-2 overflow-y-auto pr-1">
-            {flavors.map((flavor) => (
-              <button
-                key={flavor.id}
-                className={`w-full rounded-xl border px-3 py-2 text-left transition ${
-                  selectedFlavorId === flavor.id
-                    ? "border-accent bg-accent/10"
-                    : "border-black/10 hover:border-black/30"
-                }`}
-                onClick={async () => {
-                  setSelectedFlavorId(flavor.id);
-                  await refreshFlavorDetail(flavor.id);
-                }}
-                type="button"
-              >
-                <div className="font-medium">{flavor.name}</div>
-                <div className="text-sm text-muted">{flavor.description ?? "No description"}</div>
-              </button>
-            ))}
+            {flavors.length === 0 ? (
+              <p className="text-sm text-muted">No flavors yet. Create one above.</p>
+            ) : (
+              flavors.map((flavor) => (
+                <button
+                  key={flavor.id}
+                  className={`w-full rounded-xl border px-3 py-2 text-left transition ${
+                    selectedFlavorId === flavor.id
+                      ? "border-accent bg-accent/10"
+                      : "border-black/10 hover:border-black/30"
+                  }`}
+                  onClick={async () => {
+                    setSelectedFlavorId(flavor.id);
+                    await refreshFlavorDetail(flavor.id);
+                  }}
+                  type="button"
+                >
+                  <div className="font-medium">{flavor.name}</div>
+                  <div className="line-clamp-2 text-sm text-muted">
+                    {flavor.description ?? "No description"}
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </section>
 
         <section className="panel p-4 md:p-5">
           <h2 className="text-xl font-semibold">Flavor Details</h2>
           {!selectedFlavorId ? (
-            <p className="mt-4 text-muted">Select a flavor to edit or delete.</p>
+            <p className="mt-4 text-muted">Select a flavor on the left to edit it.</p>
           ) : (
             <>
               <div className="mt-4 space-y-2">
+                <label className="block text-xs font-medium text-muted">Name</label>
                 <input
                   className="soft-input"
-                  value={flavors.find((f) => f.id === selectedFlavorId)?.name ?? ""}
+                  value={selectedFlavor?.name ?? ""}
                   onChange={(event) => {
                     setFlavors((prev) =>
                       prev.map((flavor) =>
@@ -603,9 +652,10 @@ export function PromptChainAdmin() {
                     );
                   }}
                 />
+                <label className="block pt-2 text-xs font-medium text-muted">Description</label>
                 <textarea
-                  className="soft-input min-h-20"
-                  value={flavors.find((f) => f.id === selectedFlavorId)?.description ?? ""}
+                  className="soft-input min-h-40"
+                  value={selectedFlavor?.description ?? ""}
                   onChange={(event) => {
                     setFlavors((prev) =>
                       prev.map((flavor) =>
@@ -617,48 +667,113 @@ export function PromptChainAdmin() {
                   }}
                 />
               </div>
-              <div className="mt-3 flex gap-2">
-                <button className="primary-btn" disabled={isBusy} onClick={updateFlavor} type="button">
-                  Update Flavor
-                </button>
-                <button className="secondary-btn" disabled={isBusy} onClick={duplicateFlavor} type="button">
-                  Duplicate Flavor
-                </button>
-                <button className="secondary-btn" disabled={isBusy} onClick={configurePipeline} type="button">
-                  Configure Pipeline
-                </button>
-                <button className="danger-btn" disabled={isBusy} onClick={deleteFlavor} type="button">
-                  Delete Flavor
-                </button>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <div>
+                  <button className="primary-btn w-full" disabled={isBusy} onClick={updateFlavor} type="button">
+                    Update Flavor
+                  </button>
+                  <p className="mt-1 text-xs text-muted">Save name and description changes.</p>
+                </div>
+                <div>
+                  <button
+                    className="secondary-btn w-full"
+                    disabled={isBusy}
+                    onClick={configurePipeline}
+                    type="button"
+                  >
+                    Configure Pipeline
+                  </button>
+                  <p className="mt-1 text-xs text-muted">
+                    Auto-fix step types & chaining so captions can generate.
+                  </p>
+                </div>
+                <div>
+                  <button
+                    className="secondary-btn w-full"
+                    disabled={isBusy}
+                    onClick={duplicateFlavor}
+                    type="button"
+                  >
+                    Duplicate Flavor
+                  </button>
+                  <p className="mt-1 text-xs text-muted">Make a copy with a new name.</p>
+                </div>
+                <div>
+                  <button className="danger-btn w-full" disabled={isBusy} onClick={deleteFlavor} type="button">
+                    Delete Flavor
+                  </button>
+                  <p className="mt-1 text-xs text-muted">Permanently remove this flavor and its steps.</p>
+                </div>
               </div>
             </>
           )}
         </section>
 
         <section className="panel p-4 md:p-5">
-          <h2 className="text-xl font-semibold">Flavor Steps</h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-xl font-semibold">Flavor Steps</h2>
+            {selectedFlavorId ? (
+              <span className="text-xs text-muted">{steps.length} step(s)</span>
+            ) : null}
+          </div>
           {!selectedFlavorId ? (
-            <p className="mt-4 text-muted">Select a flavor first.</p>
+            <p className="mt-4 text-muted">Select a flavor to manage its steps.</p>
           ) : (
             <>
-              <form className="mt-4 flex gap-2" onSubmit={createStep}>
-                <input
-                  className="soft-input"
+              <p className="mt-1 text-xs text-muted">
+                First step receives the image. Later steps receive the previous step&apos;s output. After
+                adding/removing steps, click <span className="font-semibold">Configure Pipeline</span>.
+              </p>
+
+              <form className="mt-4 space-y-2" onSubmit={createStep}>
+                <textarea
+                  className="soft-input min-h-20"
                   value={stepInput}
-                  placeholder="New step instruction"
+                  placeholder="New step instruction (what should this step do?)"
                   onChange={(event) => setStepInput(event.target.value)}
                 />
-                <button className="primary-btn" disabled={isBusy} type="submit">
-                  Add
+                <button className="primary-btn w-full" disabled={isBusy} type="submit">
+                  + Add Step
                 </button>
               </form>
 
               <div className="mt-4 space-y-3">
                 {steps.map((step, idx) => (
                   <div className="rounded-xl border border-black/10 p-3" key={step.id}>
-                    <div className="mb-2 text-sm font-semibold">Step {step.step_order}</div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span
+                        className="rounded-full px-2 py-0.5 text-xs font-semibold"
+                        style={{
+                          background: "color-mix(in oklab, var(--accent) 18%, transparent)",
+                          color: "var(--accent)",
+                        }}
+                      >
+                        Step {step.step_order}
+                      </span>
+                      <div className="flex gap-1">
+                        <button
+                          className="rounded-md border border-black/10 px-2 py-1 text-xs"
+                          disabled={isBusy || idx === 0}
+                          onClick={() => reorderStep(step.id, "up")}
+                          title="Move up"
+                          type="button"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          className="rounded-md border border-black/10 px-2 py-1 text-xs"
+                          disabled={isBusy || idx === steps.length - 1}
+                          onClick={() => reorderStep(step.id, "down")}
+                          title="Move down"
+                          type="button"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    </div>
                     <textarea
-                      className="soft-input min-h-20"
+                      className="soft-input min-h-24"
                       value={stepEdits[step.id] ?? ""}
                       onChange={(event) =>
                         setStepEdits((prev) => ({
@@ -667,30 +782,14 @@ export function PromptChainAdmin() {
                         }))
                       }
                     />
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="mt-2 flex gap-2">
                       <button
-                        className="secondary-btn"
-                        disabled={isBusy || idx === 0}
-                        onClick={() => reorderStep(step.id, "up")}
-                        type="button"
-                      >
-                        Move Up
-                      </button>
-                      <button
-                        className="secondary-btn"
-                        disabled={isBusy || idx === steps.length - 1}
-                        onClick={() => reorderStep(step.id, "down")}
-                        type="button"
-                      >
-                        Move Down
-                      </button>
-                      <button
-                        className="primary-btn"
+                        className="primary-btn flex-1"
                         disabled={isBusy}
                         onClick={() => updateStep(step.id)}
                         type="button"
                       >
-                        Save Step
+                        Save
                       </button>
                       <button
                         className="danger-btn"
@@ -698,7 +797,7 @@ export function PromptChainAdmin() {
                         onClick={() => deleteStep(step.id)}
                         type="button"
                       >
-                        Delete Step
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -709,14 +808,36 @@ export function PromptChainAdmin() {
         </section>
 
         <section className="panel p-4 md:p-5 xl:col-span-3">
-          <h2 className="text-xl font-semibold">Test Flavor With Image Set</h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-xl font-semibold">Test Flavor With Image Set</h2>
+            {totalImages > 0 ? (
+              <span className="text-xs text-muted">
+                {selectedImageCount} of {totalImages} selected
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            Load images, click thumbnails to select, then generate. Selected images get an orange border.
+          </p>
+
           <div className="mt-3 flex flex-wrap gap-2">
-            <button className="secondary-btn" disabled={isBusy} onClick={loadTestImages} type="button">
-              Load Test Images
-            </button>
-            <button className="primary-btn" disabled={isBusy || !selectedFlavorId} onClick={runFlavorTest} type="button">
-              Generate Captions
-            </button>
+            <div>
+              <button className="secondary-btn" disabled={isBusy} onClick={loadTestImages} type="button">
+                Load Test Images
+              </button>
+              <p className="mt-1 text-xs text-muted">Pulls latest 20 public images.</p>
+            </div>
+            <div>
+              <button
+                className="primary-btn"
+                disabled={isBusy || !selectedFlavorId || selectedImageCount === 0}
+                onClick={runFlavorTest}
+                type="button"
+              >
+                Generate Captions
+              </button>
+              <p className="mt-1 text-xs text-muted">Runs the prompt chain on each selected image.</p>
+            </div>
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -747,61 +868,91 @@ export function PromptChainAdmin() {
             })}
           </div>
 
-          <div className="mt-6 space-y-3">
-            {testResults.map((result) => {
-              const image = images.find((img) => img.id === result.imageId);
-              return (
-                <div className="rounded-xl border border-black/10 p-4" key={result.imageId}>
-                  <div className="flex flex-col gap-4 md:flex-row">
-                    {image ? (
-                      <div className="md:w-64 md:shrink-0">
-                        <img
-                          alt={image.image_description ?? "test image"}
-                          className="h-48 w-full rounded-lg object-cover md:h-40"
-                          src={image.url}
-                        />
-                        {image.image_description ? (
-                          <p className="mt-2 text-xs text-muted">{image.image_description}</p>
+          {testResults.length > 0 ? (
+            <div className="mt-6">
+              <h3 className="mb-3 text-lg font-semibold">
+                Results <span className="text-sm font-normal text-muted">({testResults.length})</span>
+              </h3>
+              <div className="space-y-3">
+                {testResults.map((result) => {
+                  const image = images.find((img) => img.id === result.imageId);
+                  return (
+                    <div className="rounded-xl border border-black/10 p-4" key={result.imageId}>
+                      <div className="flex flex-col gap-4 md:flex-row">
+                        {image ? (
+                          <div className="md:w-64 md:shrink-0">
+                            <img
+                              alt={image.image_description ?? "test image"}
+                              className="h-48 w-full rounded-lg object-cover md:h-40"
+                              src={image.url}
+                            />
+                            {image.image_description ? (
+                              <details className="mt-2">
+                                <summary className="cursor-pointer text-xs text-muted hover:underline">
+                                  Image description
+                                </summary>
+                                <p className="mt-1 text-xs text-muted">{image.image_description}</p>
+                              </details>
+                            ) : null}
+                          </div>
                         ) : null}
+                        <div className="flex-1">
+                          {result.captions.length > 0 ? (
+                            <>
+                              <h3 className="text-sm font-semibold">
+                                Generated Captions{" "}
+                                <span className="font-normal text-muted">({result.captions.length})</span>
+                              </h3>
+                              <ol className="mt-2 space-y-2 text-sm">
+                                {result.captions.map((caption, index) => (
+                                  <li
+                                    className="flex items-start gap-2 rounded-lg border border-black/5 px-3 py-2"
+                                    key={`${result.imageId}-${index}`}
+                                  >
+                                    <span className="text-xs text-muted">{index + 1}.</span>
+                                    <span className="flex-1">{caption}</span>
+                                    <button
+                                      className="rounded-md border border-black/10 px-2 py-0.5 text-xs hover:border-accent"
+                                      onClick={() => navigator.clipboard?.writeText(caption)}
+                                      title="Copy caption"
+                                      type="button"
+                                    >
+                                      Copy
+                                    </button>
+                                  </li>
+                                ))}
+                              </ol>
+                              <details className="mt-3">
+                                <summary className="cursor-pointer text-xs text-muted hover:underline">
+                                  Image ID
+                                </summary>
+                                <p className="mt-1 break-all text-xs text-muted">{result.imageId}</p>
+                              </details>
+                            </>
+                          ) : (
+                            <>
+                              <h3 className="text-sm font-semibold text-danger">
+                                No captions returned
+                              </h3>
+                              {result.error ? (
+                                <p className="mt-2 text-sm text-danger">{result.error}</p>
+                              ) : (
+                                <p className="mt-2 text-sm text-muted">
+                                  The API responded without any captions. Try clicking{" "}
+                                  <span className="font-semibold">Configure Pipeline</span> on the
+                                  flavor and re-running.
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
-                    ) : null}
-                    <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-muted">
-                        Image ID: {result.imageId}
-                      </h3>
-                      {result.captions.length > 0 ? (
-                        <ul className="mt-2 list-disc pl-5 text-sm">
-                          {result.captions.map((caption, index) => (
-                            <li key={`${result.imageId}-${index}`}>{caption}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <>
-                          <p className="mt-2 text-sm" style={{ color: "#ff5555" }}>
-                            DEBUG: no captions parsed. Full result object below:
-                          </p>
-                          <pre
-                            className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg p-3 text-xs"
-                            style={{
-                              backgroundColor: "#1a1a1a",
-                              color: "#f0f0f0",
-                              border: "1px solid #444",
-                            }}
-                          >
-                            {JSON.stringify(
-                              { error: result.error, captions: result.captions, raw: result.raw },
-                              null,
-                              2,
-                            )}
-                          </pre>
-                        </>
-                      )}
                     </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </section>
       </div>
     </div>
