@@ -272,6 +272,34 @@ export function PromptChainAdmin() {
     setStatusMessage(`Flavor duplicated as "${data.flavor.name}".`);
   }
 
+  async function configurePipeline() {
+    if (!selectedFlavorId) {
+      return;
+    }
+
+    setIsBusy(true);
+    setStatusMessage("Configuring pipeline (input/output types, system prompts, chaining)...");
+
+    const response = await fetch(
+      `/api/flavors/${selectedFlavorId}/configure-pipeline`,
+      { method: "POST" },
+    );
+
+    setIsBusy(false);
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({ error: "Failed to configure pipeline" }));
+      setStatusMessage(data.error ?? "Failed to configure pipeline");
+      return;
+    }
+
+    const data = (await response.json()) as { stepCount: number };
+    await refreshFlavorDetail(selectedFlavorId);
+    setStatusMessage(
+      `Pipeline configured: ${data.stepCount} step(s) updated. You can now generate captions.`,
+    );
+  }
+
   async function deleteFlavor() {
     if (!selectedFlavorId) {
       return;
@@ -595,6 +623,9 @@ export function PromptChainAdmin() {
                 </button>
                 <button className="secondary-btn" disabled={isBusy} onClick={duplicateFlavor} type="button">
                   Duplicate Flavor
+                </button>
+                <button className="secondary-btn" disabled={isBusy} onClick={configurePipeline} type="button">
+                  Configure Pipeline
                 </button>
                 <button className="danger-btn" disabled={isBusy} onClick={deleteFlavor} type="button">
                   Delete Flavor
