@@ -60,6 +60,7 @@ export function PromptChainAdmin() {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isBusy, setIsBusy] = useState(false);
+  const [flavorSearch, setFlavorSearch] = useState("");
 
   useEffect(() => {
     const stored = localStorage.getItem(THEME_KEY) as ThemeMode | null;
@@ -534,6 +535,14 @@ export function PromptChainAdmin() {
         : "color-mix(in oklab, var(--foreground) 18%, transparent)";
 
   const selectedFlavor = flavors.find((f) => f.id === selectedFlavorId);
+  const trimmedSearch = flavorSearch.trim().toLowerCase();
+  const filteredFlavors = trimmedSearch
+    ? flavors.filter(
+        (f) =>
+          f.name.toLowerCase().includes(trimmedSearch) ||
+          (f.description ?? "").toLowerCase().includes(trimmedSearch),
+      )
+    : flavors;
   const totalImages = images.length;
   const selectedImageCount = selectedImageIds.length;
 
@@ -603,11 +612,37 @@ export function PromptChainAdmin() {
             </button>
           </form>
 
-          <div className="mt-4 max-h-96 space-y-2 overflow-y-auto pr-1">
+          <div className="mt-4 flex items-center gap-2">
+            <input
+              className="soft-input"
+              placeholder="Search flavors by name or description..."
+              value={flavorSearch}
+              onChange={(event) => setFlavorSearch(event.target.value)}
+            />
+            {flavorSearch ? (
+              <button
+                className="rounded-md border border-black/10 px-2 py-1 text-xs"
+                onClick={() => setFlavorSearch("")}
+                title="Clear search"
+                type="button"
+              >
+                ✕
+              </button>
+            ) : null}
+          </div>
+          {trimmedSearch ? (
+            <p className="mt-1 text-xs text-muted">
+              {filteredFlavors.length} of {flavors.length} match &ldquo;{flavorSearch}&rdquo;
+            </p>
+          ) : null}
+
+          <div className="mt-3 max-h-96 space-y-2 overflow-y-auto pr-1">
             {flavors.length === 0 ? (
               <p className="text-sm text-muted">No flavors yet. Create one above.</p>
+            ) : filteredFlavors.length === 0 ? (
+              <p className="text-sm text-muted">No flavors match your search.</p>
             ) : (
-              flavors.map((flavor) => (
+              filteredFlavors.map((flavor) => (
                 <button
                   key={flavor.id}
                   className={`w-full rounded-xl border px-3 py-2 text-left transition ${
