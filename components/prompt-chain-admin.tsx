@@ -748,11 +748,13 @@ export function PromptChainAdmin() {
                         </ul>
                       ) : (
                         <>
-                          <p className="mt-2 text-sm text-muted">
+                          <p className="mt-2 text-sm text-danger">
                             No captions parsed from the response. Raw output below:
                           </p>
-                          <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-black/5 p-2 text-xs">
-                            {JSON.stringify(result.raw, null, 2)}
+                          <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-black/20 bg-black/40 p-3 text-xs text-white">
+                            {result.raw === null || result.raw === undefined
+                              ? "(empty response)"
+                              : JSON.stringify(result.raw, null, 2)}
                           </pre>
                         </>
                       )}
