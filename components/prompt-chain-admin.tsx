@@ -533,7 +533,7 @@ export function PromptChainAdmin() {
             </button>
           </form>
 
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 max-h-96 space-y-2 overflow-y-auto pr-1">
             {flavors.map((flavor) => (
               <button
                 key={flavor.id}
@@ -717,20 +717,50 @@ export function PromptChainAdmin() {
           </div>
 
           <div className="mt-6 space-y-3">
-            {testResults.map((result) => (
-              <div className="rounded-xl border border-black/10 p-4" key={result.imageId}>
-                <h3 className="font-semibold">Image ID: {result.imageId}</h3>
-                {result.error ? (
-                  <p className="mt-2 text-danger">{result.error}</p>
-                ) : (
-                  <ul className="mt-2 list-disc pl-5 text-sm">
-                    {result.captions.map((caption, index) => (
-                      <li key={`${result.imageId}-${index}`}>{caption}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
+            {testResults.map((result) => {
+              const image = images.find((img) => img.id === result.imageId);
+              return (
+                <div className="rounded-xl border border-black/10 p-4" key={result.imageId}>
+                  <div className="flex flex-col gap-4 md:flex-row">
+                    {image ? (
+                      <div className="md:w-64 md:shrink-0">
+                        <img
+                          alt={image.image_description ?? "test image"}
+                          className="h-48 w-full rounded-lg object-cover md:h-40"
+                          src={image.url}
+                        />
+                        {image.image_description ? (
+                          <p className="mt-2 text-xs text-muted">{image.image_description}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-muted">
+                        Image ID: {result.imageId}
+                      </h3>
+                      {result.error ? (
+                        <p className="mt-2 text-danger">{result.error}</p>
+                      ) : result.captions.length > 0 ? (
+                        <ul className="mt-2 list-disc pl-5 text-sm">
+                          {result.captions.map((caption, index) => (
+                            <li key={`${result.imageId}-${index}`}>{caption}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <>
+                          <p className="mt-2 text-sm text-muted">
+                            No captions parsed from the response. Raw output below:
+                          </p>
+                          <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-black/5 p-2 text-xs">
+                            {JSON.stringify(result.raw, null, 2)}
+                          </pre>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>
