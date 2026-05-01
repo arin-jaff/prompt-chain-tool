@@ -738,9 +738,7 @@ export function PromptChainAdmin() {
                       <h3 className="text-sm font-semibold text-muted">
                         Image ID: {result.imageId}
                       </h3>
-                      {result.error ? (
-                        <p className="mt-2 text-danger">{result.error}</p>
-                      ) : result.captions.length > 0 ? (
+                      {result.captions.length > 0 ? (
                         <ul className="mt-2 list-disc pl-5 text-sm">
                           {result.captions.map((caption, index) => (
                             <li key={`${result.imageId}-${index}`}>{caption}</li>
@@ -748,13 +746,22 @@ export function PromptChainAdmin() {
                         </ul>
                       ) : (
                         <>
-                          <p className="mt-2 text-sm text-danger">
-                            No captions parsed from the response. Raw output below:
+                          <p className="mt-2 text-sm" style={{ color: "#ff5555" }}>
+                            DEBUG: no captions parsed. Full result object below:
                           </p>
-                          <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-black/20 bg-black/40 p-3 text-xs text-white">
-                            {result.raw === null || result.raw === undefined
-                              ? "(empty response)"
-                              : JSON.stringify(result.raw, null, 2)}
+                          <pre
+                            className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg p-3 text-xs"
+                            style={{
+                              backgroundColor: "#1a1a1a",
+                              color: "#f0f0f0",
+                              border: "1px solid #444",
+                            }}
+                          >
+                            {JSON.stringify(
+                              { error: result.error, captions: result.captions, raw: result.raw },
+                              null,
+                              2,
+                            )}
                           </pre>
                         </>
                       )}
